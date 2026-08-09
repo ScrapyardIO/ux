@@ -3,11 +3,7 @@
 namespace ScrapyardIO\UX\Enums;
 
 /**
- * The shapes {@see \ScrapyardIO\UX\Chrome\Icon} can draw from primitives.
- *
- * Vector rather than bitmap on purpose. A bitmap icon has one size, and the same
- * tree here has to read on a 128x64 panel and a 1024x768 window; a shape drawn
- * from the renderer's own primitives simply scales with the box it is given.
+ * Vector shapes {@see \ScrapyardIO\UX\Components\Chrome\Icon} can draw from primitives.
  */
 enum IconGlyph: string
 {
@@ -26,10 +22,6 @@ enum IconGlyph: string
     case CHEVRON_UP = 'CHEVRON_UP';
     case CHEVRON_DOWN = 'CHEVRON_DOWN';
 
-    /**
-     * Whether the shape covers its whole box, which is the only case where an
-     * icon may claim to be opaque.
-     */
     public function isSolid(): bool
     {
         return $this === self::BOX;

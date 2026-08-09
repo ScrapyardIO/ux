@@ -7,10 +7,9 @@ return [
     | Palette
     |--------------------------------------------------------------------------
     |
-    | Declared once as RGB hex and packed per target from the surface's
-    | FormatSpec, so the same tree reads correctly on a 1-bit OLED and an RGBA
-    | window. On a monochrome panel every colour collapses to lit or unlit, so
-    | keep the ink bright and the surface dark rather than relying on shades.
+    | Declared once as RGB hex and packed to 0xRRGGBBAA for Renderer2D.
+    | On a monochrome panel every colour collapses to lit or unlit, so keep
+    | the ink bright and the surface dark rather than relying on shades.
     |
     */
 
@@ -30,9 +29,9 @@ return [
     | Metrics
     |--------------------------------------------------------------------------
     |
-    | Default extents for nodes that have an intrinsic thickness. These are sized
-    | for a 128x64 panel on purpose: a value that reads well there is merely
-    | small on a 1024x768 window, whereas the reverse is illegible.
+    | Default extents for nodes that have an intrinsic thickness. Sized for a
+    | 128x64 panel on purpose: a value that reads well there is merely small
+    | on a larger window, whereas the reverse is illegible.
     |
     */
 
@@ -45,6 +44,7 @@ return [
         'pixel_radius' => 3,
         'gauge_ticks' => 5,
         'sparkline_samples' => 32,
+        'status_bar_height' => 16,
     ],
 
     /*
@@ -53,8 +53,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | A null font is the built-in classic 5x7. Named fonts resolve through the
-    | font registry and fall back to classic when the registered font is a
-    | data-less stub.
+    | tubes Font registry when available.
     |
     */
 

@@ -3,119 +3,71 @@
 [![Latest Version on Packagist](https://img.shields.io/packagist/v/scrapyard-io/ux.svg)](https://packagist.org/packages/scrapyard-io/ux)
 [![License](https://img.shields.io/packagist/l/scrapyard-io/ux.svg)](LICENSE)
 
-UX is the ScrapyardIO node library. A screen is a tree of nodes composed with the
-framework's flex-lite layout, painted by a `Stage` that repaints only what
-changed, on any surface from a 128x64 SSD1306 to a 1024x768 SDL window.
+UX is the ScrapyardIO **layered scene / node** library for 0.7. A screen is a
+tree of `Node` / `Drawable` / `UIComponent` children orchestrated by a `Scene`
+that paints through a borrowed tubes `Renderer2D` into a `Canvas` framebuffer.
 
-The point is not that it is prettier than draw calls. It is that a full SSD1306
-transmit costs 20-30 ms, which caps an unconditionally redrawn sketch at roughly
-30 fps however little of the screen moved. Setters mark damage, the stage paints
-the damaged subtrees, and a screen that is standing still costs nothing at all.
+```text
+game-engine (future) → scrapyard-io/ux → scrapyard-io/tubes → framework
+```
 
 ## Requirements
 
 - PHP 8.4+
-- `scrapyard-io/framework` / `fabricate/*` 0.6.x
+- `scrapyard-io/framework` ^0.7
+- `scrapyard-io/tubes` ^0.7
 
 ## Installation
 
-In the ScrapyardIO monorepo skeleton, require the path package:
-
 ```bash
-composer require scrapyard-io/ux:^0.6.0
+composer require scrapyard-io/ux:^0.7.0
 php workshop package:discover
 ```
 
-Publish the config to change the palette or the default metrics:
+Publish the config to change the palette or default metrics:
 
 ```bash
-php workshop vendor:publish --provider="ScrapyardIO\UX\UXServiceProvider"
+php workshop vendor:publish --tag=ux-config
 ```
 
 ## Quick start
 
-Extend `App\Sketches\UXSketch`, build a tree, and mutate it. There is no draw
-method and no `present()` call:
-
 ```php
-use Fabricate\UX\Layout\Align;
-use Fabricate\UX\Node;
-use ScrapyardIO\UX\Chrome\Panel;
-use ScrapyardIO\UX\Text\Label;
+use ScrapyardIO\UX\Components\Chrome\Panel;
+use ScrapyardIO\UX\Components\Chrome\StatusBar;
+use ScrapyardIO\UX\Components\Ball;
+use ScrapyardIO\UX\Core\Scene;
 
-class Hello extends UXSketch
-{
-    protected Label $greeting;
+$root = Panel::surface();
+$root->addChild(StatusBar::of('L', 'C', 'R'));
+$root->addChild(Ball::of(24)->setCenter(160, 120));
 
-    protected function build(): Node
-    {
-        $this->greeting = Label::of('hello')->fitTextTo(3);
+$scene = (new Scene)->attach($window)->setRoot($root);
 
-        return Panel::surface()->add(Align::centered($this->greeting));
-    }
-
-    protected function sample(float $dt): void
-    {
-        $this->greeting->setText(date('H:i:s'));
-    }
-}
+$renderer->setFramebuffer($window->framebuffer());
+$scene->paint($renderer);
+$renderer->unsetFramebuffer();
+$window->present();
 ```
 
-The label measures its own glyphs, `Align` centres it, and changing the text to a
-string of the same width repaints the label's box and nothing else.
+## Demo
 
-Scaffold a node of your own with:
+With UX installed, the tubes smoke name runs the UX Scene sketch:
 
 ```bash
-php workshop make:node BatteryMeter
+./runner canvas-window-demo
+./runner canvas-window-demo sdl3 --fps=60
+./runner ux-canvas-window-demo   # explicit alias
 ```
 
-## The library
-
-| Namespace | Nodes |
-|---|---|
-| `Text` | `Label`, `Readout`, `Marquee` |
-| `Chrome` | `Panel`, `Border`, `Icon`, `StatusBar` |
-| `Indicators` | `ProgressBar`, `Gauge`, `Sparkline`, `PixelStrip` |
-| `Controls` | `Button`, `Toggle`, `Slider`, `ListView`, `Menu` |
-
-Controls implement the framework's `Focusable`, `Touchable`, `Pointable` and
-`Buttonable` contracts, so an `InputRouter` drives the same tree from a
-touchscreen, a mouse or a d-pad.
-
-## Colour
-
-Declare colours once as `Fabricate\UX\Color` and let the surface resolve them:
-
-```php
-Panel::of(Color::fromHex('#201D2B'));
-```
-
-The same tree paints correctly on a 1-bit panel (where every colour collapses to
-lit or unlit) and an RGBA window, because packing happens at paint time against
-the stage's `FormatSpec` rather than being frozen into the node.
-
-Named colours come from `config/ux.php` through `Support\Theme`, which falls back
-to the packaged palette when no application is booted — a node must be
-constructible without a container.
-
-## Sizing
-
-Nodes are intrinsic by default: they answer `measure()` with the size they want
-inside the offer they were given, and the containers around them decide where
-that lands. Two shapes recur enough to be worth knowing:
-
-- `Label::fitTextTo(3)` picks the largest text size up to 3 that still fits,
-  which is what makes one tree legible on both a 128px panel and a full window.
-- `Column::wrapContent()` makes a group exactly as tall as its children. Without
-  it a flex child claims the whole remaining axis and squeezes its siblings.
-
-## Testing
+## Generators
 
 ```bash
-vendor/bin/pest --testsuite Ux
+php workshop make:component Hud/Meter
+php workshop make:ux-node Entities/Player
 ```
 
-Package tests stage trees over a real framebuffer and a real renderer, and assert
-on the pixels written and the regions marked for transmit. See
-`tests/Support/StageHarness.php`.
+## Docs
+
+Ecosystem docs and the package `.okf/` knowledge bundle cover the layered tree,
+ownership vs tubes, and the engine extension seam.

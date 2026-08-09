@@ -2,5 +2,9 @@
 
 /tests export-ignore
 /phpunit.xml export-ignore
-/.gitattributes export-ignore
+/.github export-ignore
+/.okf export-ignore
+/AGENTS.md export-ignore
+/.editorconfig export-ignore
 /.gitignore export-ignore
+/_src export-ignore

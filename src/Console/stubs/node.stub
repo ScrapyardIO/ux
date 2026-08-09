@@ -1,0 +1,18 @@
+<?php
+
+namespace {{ namespace }};
+
+use ScrapyardIO\UX\Core\Node;
+
+class {{ class }} extends Node
+{
+    public function ready(): void
+    {
+        //
+    }
+
+    public function process(float $dt): void
+    {
+        parent::process($dt);
+    }
+}

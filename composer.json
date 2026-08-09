@@ -1,12 +1,13 @@
 {
     "name": "scrapyard-io/ux",
-    "description": "The ScrapyardIO Node-based-UX library.",
+    "description": "The ScrapyardIO Node-based UX library (layered Scene / Node / Drawable / UIComponent).",
+    "keywords": ["framework", "scrapyard-io", "ux", "ui", "scene"],
     "license": "MIT",
-    "homepage": "https://scrapyard-io.projectsaturnstudios.com",
-    "version": "0.6.0",
+    "homepage": "https://scrapyard-io.projectsaturnstudios.com/ecosystem/scrapyard-io/ux/0.7.x",
+    "version": "0.7.0",
     "support": {
-        "issues": "https://github.com/scrapyard-io/framework/issues",
-        "source": "https://github.com/scrapyard-io/framework"
+        "issues": "https://github.com/scrapyard-io/ux/issues",
+        "source": "https://github.com/scrapyard-io/ux"
     },
     "authors": [
         {
@@ -16,12 +17,11 @@
     ],
     "require": {
         "php": "^8.4|^8.5|^8.6",
-        "fabricate/ux": "^0.6.0",
-        "fabricate/contracts": "^0.6.0",
-        "fabricate/nuts-and-bolts": "^0.6.0"
+        "scrapyard-io/framework": "^0.7.0",
+        "scrapyard-io/tubes": "^0.7.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^12.5"
+        "pestphp/pest": "^4"
     },
     "autoload": {
         "psr-4": {
@@ -40,11 +40,15 @@
             ]
         },
         "branch-alias": {
-            "dev-master": "0.6.x-dev"
+            "dev-master": "0.7.x-dev"
         }
     },
     "config": {
-        "sort-packages": true
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
     },
-    "minimum-stability": "dev"
+    "minimum-stability": "dev",
+    "prefer-stable": true
 }

@@ -1,0 +1,14 @@
+<?php
+
+namespace {{ namespace }};
+
+use ScrapyardIO\UX\Core\PaintContext;
+use ScrapyardIO\UX\Core\UIComponent;
+
+class {{ class }} extends UIComponent
+{
+    protected function draw(PaintContext $ctx): void
+    {
+        //
+    }
+}

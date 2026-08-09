@@ -2,20 +2,12 @@
 
 namespace ScrapyardIO\UX\Support;
 
-use Fabricate\UX\Color;
 use Throwable;
 
 /**
- * The palette and default metrics a node reaches for when the caller did not say.
+ * Palette and default metrics when the caller did not specify.
  *
- * Read through here rather than through `config()` directly for two reasons. A
- * node has to be constructible with no container at all — a package test builds a
- * tree without ever booting a Machine — and the lookup happens in constructors,
- * so it has to be cheap enough to do repeatedly.
- *
- * Values are resolved once and cached. {@see flush()} exists for the service
- * provider, which merges the package config after the first node may already have
- * read a default, and for tests that override the palette.
+ * Constructible without a booted Machine — package tests build trees offline.
  */
 final class Theme
 {
@@ -50,10 +42,6 @@ final class Theme
         return is_int($value) ? $value : $fallback;
     }
 
-    /**
-     * The font every text node starts with, as a registered name. Null is the
-     * built-in classic 5x7.
-     */
     public static function font(): ?string
     {
         $value = self::section('text')['font'] ?? null;
@@ -69,9 +57,6 @@ final class Theme
     }
 
     /**
-     * Replace the resolved values wholesale, for a test that needs a known
-     * palette rather than whatever the application configured.
-     *
      * @param  array<string, mixed>  $values
      */
     public static function override(array $values): void
@@ -109,10 +94,6 @@ final class Theme
     }
 
     /**
-     * Whatever the application published, or nothing at all when there is no
-     * container — a node library must not require a booted Machine to describe a
-     * colour.
-     *
      * @return array<string, mixed>
      */
     protected static function configured(): array
@@ -131,9 +112,6 @@ final class Theme
     }
 
     /**
-     * Mirrors config/ux.php, so an application that never publishes the config
-     * still gets the same palette the package documents.
-     *
      * @return array<string, mixed>
      */
     protected static function defaults(): array
@@ -158,6 +136,7 @@ final class Theme
                 'pixel_radius' => 3,
                 'gauge_ticks' => 5,
                 'sparkline_samples' => 32,
+                'status_bar_height' => 16,
             ],
             'text' => [
                 'font' => null,
@@ -166,10 +145,6 @@ final class Theme
         ];
     }
 
-    /**
-     * A malformed hex is a configuration mistake, not a reason to refuse to
-     * paint, so it degrades to ink rather than throwing mid-frame.
-     */
     protected static function parse(string $hex): Color
     {
         try {
