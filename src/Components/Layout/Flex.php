@@ -74,14 +74,25 @@ class Flex extends UIComponent
         $flexTotal = 0;
         $weights = [];
 
+        /** @var array<int, int> $mains */
+        $mains = [];
+
         foreach ($children as $index => $child) {
             $weight = $this->flexWeight($child);
             $weights[$index] = $weight;
 
             if ($weight > 0) {
                 $flexTotal += $weight;
+                $mains[$index] = 0;
             } else {
-                $fixed += $horizontal ? $child->size()->width : $child->size()->height;
+                // Folders / Rows with unset size report 0 — measure from visible UI children
+                // so nested menus are not culled by a zero-height parent.
+                $main = $horizontal ? $child->size()->width : $child->size()->height;
+                if ($main <= 0) {
+                    $main = $this->measureMainAxis($child, $horizontal);
+                }
+                $mains[$index] = $main;
+                $fixed += $main;
             }
         }
 
@@ -93,6 +104,7 @@ class Flex extends UIComponent
         foreach ($children as $index => $child) {
             $weight = $weights[$index];
             $childSize = $child->size();
+            $measuredMain = $mains[$index] ?? 0;
 
             if ($weight > 0 && $flexTotal > 0) {
                 $weighed += $weight;
@@ -104,12 +116,14 @@ class Flex extends UIComponent
                 } else {
                     $child->setSize($crossAvail > 0 ? $crossAvail : $childSize->width, $share);
                 }
-            } elseif ($crossAvail > 0) {
-                if ($horizontal) {
-                    $child->setSize($childSize->width, $crossAvail);
-                } else {
-                    $child->setSize($crossAvail, $childSize->height);
-                }
+            } elseif ($horizontal) {
+                $width = max($childSize->width, $measuredMain);
+                $height = $crossAvail > 0 ? $crossAvail : max($childSize->height, $this->measureCrossAxis($child, true));
+                $child->setSize($width, $height);
+            } else {
+                $width = $crossAvail > 0 ? $crossAvail : max($childSize->width, $this->measureCrossAxis($child, false));
+                $height = max($childSize->height, $measuredMain);
+                $child->setSize($width, $height);
             }
 
             if ($horizontal) {
@@ -122,6 +136,61 @@ class Flex extends UIComponent
             $child->layout($child->size());
             $offset += $main + $this->gap;
         }
+    }
+
+    /**
+     * Sum/max of visible UI children's main-axis sizes (width if horizontal, height if vertical).
+     */
+    protected function measureMainAxis(UIComponent $child, bool $horizontal): int
+    {
+        $total = 0;
+        $count = 0;
+
+        foreach ($child->children() as $grand) {
+            if (! $grand instanceof UIComponent || ! $grand->isVisible()) {
+                continue;
+            }
+
+            $size = $grand->size();
+            $extent = $horizontal ? $size->width : $size->height;
+            if ($extent <= 0) {
+                $extent = $this->measureMainAxis($grand, $horizontal);
+            }
+
+            if ($child instanceof Flex && $child->axis() === ($horizontal ? Axis::HORIZONTAL : Axis::VERTICAL)) {
+                $total += $extent;
+                $count++;
+            } else {
+                $total = max($total, $extent);
+                $count = max(1, $count);
+            }
+        }
+
+        if ($count > 1 && $child instanceof Flex && $child->axis() === ($horizontal ? Axis::HORIZONTAL : Axis::VERTICAL)) {
+            $total += $child->gap() * ($count - 1);
+        }
+
+        return max(0, $total);
+    }
+
+    protected function measureCrossAxis(UIComponent $child, bool $parentHorizontal): int
+    {
+        $max = 0;
+
+        foreach ($child->children() as $grand) {
+            if (! $grand instanceof UIComponent || ! $grand->isVisible()) {
+                continue;
+            }
+
+            $size = $grand->size();
+            $extent = $parentHorizontal ? $size->height : $size->width;
+            if ($extent <= 0) {
+                $extent = $this->measureCrossAxis($grand, $parentHorizontal);
+            }
+            $max = max($max, $extent);
+        }
+
+        return $max;
     }
 
     protected function draw(PaintContext $ctx): void

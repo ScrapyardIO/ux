@@ -65,14 +65,27 @@ class Panel extends UIComponent
             $this->setSize($available->width, $available->height);
         }
 
+        /** @var list<UIComponent> $ui */
+        $ui = [];
         foreach ($this->children as $child) {
-            if (! $child instanceof UIComponent || ! $child->isVisible()) {
-                continue;
+            if ($child instanceof UIComponent && $child->isVisible()) {
+                $ui[] = $child;
             }
+        }
 
+        // Single child (e.g. Padding tray): fill the panel. Multiple children keep
+        // their own rects — never blow Icons/Menus up to the full panel size.
+        if (count($ui) === 1) {
+            $child = $ui[0];
             $child->setPosition(0, 0);
             $child->setSize($this->rect->width, $this->rect->height);
             $child->layout(new Size($this->rect->width, $this->rect->height));
+
+            return;
+        }
+
+        foreach ($ui as $child) {
+            $child->layout($child->size()->isEmpty() ? $available : $child->size());
         }
     }
 

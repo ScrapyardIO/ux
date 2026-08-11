@@ -7,6 +7,7 @@ use ScrapyardIO\UX\Components\Ball;
 use ScrapyardIO\UX\Core\PaintContext;
 use ScrapyardIO\UX\Core\UIComponent;
 use ScrapyardIO\UX\Geometry\Size;
+use ScrapyardIO\UX\Support\Color;
 use ScrapyardIO\UX\Support\Theme;
 
 /**
@@ -33,7 +34,10 @@ class DemoStage extends UIComponent
 
         $this->hudHeight = max(56, $hudHeight);
         $this->hud = DemoHud::of(2);
-        $this->arena = Arena::of(0, 0, $restitution);
+        // No per-frame arena chrome — outline/floor dirties almost the full panel on FT232H.
+        $this->arena = Arena::of(0, 0, $restitution)
+            ->setFloor(Color::transparent())
+            ->setOutline(Color::transparent());
         $this->ball = Ball::of($ballRadius, Theme::color('accent'))
             ->enablePhysics(426.0, 144.0);
         $this->arena->setBall($this->ball);

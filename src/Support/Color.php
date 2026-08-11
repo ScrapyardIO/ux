@@ -3,9 +3,13 @@
 namespace ScrapyardIO\UX\Support;
 
 use InvalidArgumentException;
+use ScrapyardIO\Tubes\Contracts\Framebuffers\Enums\BitDepth;
 
 /**
  * Declared RGBA colour packed to 0xRRGGBBAA for tubes Renderer2D.
+ *
+ * Use {@see packFor()} / {@see toNative()} when the host framebuffer is not B32
+ * (e.g. ST77xx RGB565 PanelIC).
  */
 final readonly class Color
 {
@@ -67,6 +71,34 @@ final readonly class Color
             | (($this->g & 0xFF) << 16)
             | (($this->b & 0xFF) << 8)
             | ($this->a & 0xFF);
+    }
+
+    /**
+     * Pack for a framebuffer host bit depth (B16 → RGB565).
+     */
+    public function packFor(BitDepth $depth): int
+    {
+        return self::toNative($this->pack(), $depth);
+    }
+
+    /**
+     * Convert a 0xRRGGBBAA packed colour into the host native encoding.
+     */
+    public static function toNative(int $rgba, BitDepth $depth): int
+    {
+        if ($depth === BitDepth::B32 || $depth === BitDepth::B24) {
+            return $rgba;
+        }
+
+        if ($depth === BitDepth::B16) {
+            $r = ($rgba >> 24) & 0xFF;
+            $g = ($rgba >> 16) & 0xFF;
+            $b = ($rgba >> 8) & 0xFF;
+
+            return (($r & 0xF8) << 8) | (($g & 0xFC) << 3) | ($b >> 3);
+        }
+
+        return $rgba;
     }
 
     public function isTransparent(): bool

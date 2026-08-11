@@ -98,6 +98,18 @@ class Label extends UIComponent
             return;
         }
 
+        // Dirty/partial canvases skip Scene clear — erase this glyph box so digits
+        // don't smear (keep the rect tiny; never wipe a full HUD band).
+        if ($this->rect->width > 0 && $this->rect->height > 0) {
+            $ctx->fillRectLocal(
+                0,
+                0,
+                $this->rect->width,
+                $this->rect->height,
+                Theme::color('surface')->pack(),
+            );
+        }
+
         $cellW = 6 * $this->textSize;
         $textW = $cellW * strlen($this->text);
         $x = match ($this->align) {

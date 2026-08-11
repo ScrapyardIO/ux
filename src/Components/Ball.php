@@ -46,6 +46,11 @@ class Ball extends UIComponent
 
     protected ?Arena $arena = null;
 
+    /** Last painted world centre — erased before the next draw on dirty/partial paths. */
+    protected ?int $lastPaintCx = null;
+
+    protected ?int $lastPaintCy = null;
+
     public function __construct(int $radius = 24, ?Color $fill = null, ?Color $outline = null)
     {
         parent::__construct('ball');
@@ -281,6 +286,18 @@ class Ball extends UIComponent
         $cx = $origin->x + $this->radius;
         $cy = $origin->y + $this->radius;
 
+        // Partial/dirty framebuffers: erase previous splat so Scene can skip full clear.
+        if (! is_null($this->lastPaintCx) && ! is_null($this->lastPaintCy)) {
+            if ($this->lastPaintCx !== $cx || $this->lastPaintCy !== $cy) {
+                $ctx->fillCircleWorld(
+                    $this->lastPaintCx,
+                    $this->lastPaintCy,
+                    $this->radius + 1,
+                    Theme::color('surface')->pack(),
+                );
+            }
+        }
+
         if (! $this->fill->isTransparent()) {
             $ctx->fillCircleWorld($cx, $cy, $this->radius, $this->fill->pack());
         }
@@ -288,6 +305,9 @@ class Ball extends UIComponent
         if (! $this->outline->isTransparent()) {
             $ctx->drawCircleWorld($cx, $cy, $this->radius, $this->outline->pack());
         }
+
+        $this->lastPaintCx = $cx;
+        $this->lastPaintCy = $cy;
     }
 
     protected function syncRectFromCenter(): void

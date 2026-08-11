@@ -3,6 +3,7 @@
 namespace ScrapyardIO\UX\Core;
 
 use ScrapyardIO\Tubes\Canvas\Canvas;
+use ScrapyardIO\Tubes\Contracts\Framebuffers\Framebuffer as FramebufferContract;
 use ScrapyardIO\Tubes\Rendering\Renderer2D;
 use ScrapyardIO\UX\Geometry\Point;
 use ScrapyardIO\UX\Geometry\Size;
@@ -14,6 +15,10 @@ use ScrapyardIO\UX\Support\Theme;
  *
  * Callers bind the framebuffer on the Renderer2D before {@see paint()}.
  * Engine packages may subclass Scene later.
+ *
+ * Clear policy follows the bound framebuffer's {@see DamageGranularity}:
+ * whole-surface buffers clear every paint; pixel/dirty buffers clear once, then
+ * rely on partial writes (so flush emits PARTIAL dumps, not FULL every frame).
  */
 class Scene
 {
@@ -31,6 +36,8 @@ class Scene
 
     protected int $layoutHeight = 0;
 
+    protected bool $surfacePrimed = false;
+
     public function __construct(?Viewport $viewport = null)
     {
         $this->viewport = $viewport ?? new Viewport;
@@ -42,6 +49,7 @@ class Scene
         if ($this->canvas !== $canvas) {
             $this->canvas = $canvas;
             $this->needsLayout = true;
+            $this->surfacePrimed = false;
         }
 
         $width = $canvas->width();
@@ -149,8 +157,9 @@ class Scene
             }
         }
 
-        if ($clear) {
+        if ($clear && $this->shouldClearSurface($renderer->framebuffer())) {
             $renderer->fill($this->clearColor->pack());
+            $this->surfacePrimed = true;
         }
 
         $ctx = new PaintContext(
@@ -160,6 +169,21 @@ class Scene
         );
 
         $this->paintNode($this->root, $ctx);
+    }
+
+    /**
+     * Whole-surface damage → clear every frame.
+     * Pixel / dirty damage → clear once (prime), then partial paints only.
+     */
+    protected function shouldClearSurface(FramebufferContract $framebuffer): bool
+    {
+        $granularity = $framebuffer->damageGranularity();
+
+        if ($granularity->coversWholeSurface()) {
+            return true;
+        }
+
+        return ! $this->surfacePrimed;
     }
 
     /**

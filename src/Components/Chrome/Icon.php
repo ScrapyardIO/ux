@@ -5,6 +5,7 @@ namespace ScrapyardIO\UX\Components\Chrome;
 use ScrapyardIO\UX\Core\PaintContext;
 use ScrapyardIO\UX\Core\UIComponent;
 use ScrapyardIO\UX\Enums\IconGlyph;
+use ScrapyardIO\UX\Geometry\Size;
 use ScrapyardIO\UX\Support\Color;
 use ScrapyardIO\UX\Support\Theme;
 
@@ -80,6 +81,14 @@ class Icon extends UIComponent
         $this->setSize($this->extent, $this->height);
 
         return $this;
+    }
+
+    /**
+     * Icons are intrinsically sized — ignore parent stretch (e.g. a full-bleed Panel).
+     */
+    public function layout(Size $available): void
+    {
+        $this->setSize($this->extent, $this->height ?? $this->extent);
     }
 
     protected function draw(PaintContext $ctx): void

@@ -178,6 +178,6 @@ class DemoHud extends UIComponent
 
     protected function draw(PaintContext $ctx): void
     {
-        // Children paint themselves.
+        // No full-band wipe — children paint; Labels erase their own glyph boxes.
     }
 }

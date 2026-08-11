@@ -118,6 +118,15 @@ class ListView extends UIComponent
         return $this;
     }
 
+    public function setTextSize(int $size): static
+    {
+        $this->textSize = max(1, $size);
+        $this->applyIntrinsicSize();
+        $this->followSelection();
+
+        return $this;
+    }
+
     public function visibleRows(): int
     {
         $row = $this->rowHeight();

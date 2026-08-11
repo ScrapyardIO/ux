@@ -7,6 +7,7 @@ use Fabricate\NutsAndBolts\AggregateServiceProvider;
 use ScrapyardIO\UX\Console\ComponentMakeCommand;
 use ScrapyardIO\UX\Console\UxNodeMakeCommand;
 use ScrapyardIO\UX\Runner\Sketches\UXCanvasWindow\UxCanvasWindowDemo;
+use ScrapyardIO\UX\Runner\Sketches\UXGuiColorMenu\UxGuiColorMenu;
 use ScrapyardIO\UX\Support\Theme;
 
 /**
@@ -58,6 +59,10 @@ class UXServiceProvider extends AggregateServiceProvider
         // Explicit UX alias for docs / discovery.
         if (! $registry->has('ux-canvas-window-demo')) {
             $registry->registerConvention('ux-canvas-window-demo', UxCanvasWindowDemo::class);
+        }
+
+        if (! $registry->has('ux-gui-color-menu')) {
+            $registry->registerConvention('ux-gui-color-menu', UxGuiColorMenu::class);
         }
     }
 }

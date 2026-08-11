@@ -5,19 +5,24 @@ namespace ScrapyardIO\UX\Runner\Sketches\UXCanvasWindow;
 use Fabricate\Contracts\Sketches\Attributes\Sketch as SketchAttribute;
 use Fabricate\Contracts\Sketches\SketchLoopResult;
 use Fabricate\Sketches\Sketch;
+use ScrapyardIO\Tubes\Canvas\Canvas;
 use ScrapyardIO\Tubes\Canvas\OSWindow;
+use ScrapyardIO\Tubes\Canvas\PanelIC;
+use ScrapyardIO\Tubes\Core\Enums\CanvasProfileKind;
+use ScrapyardIO\Tubes\Core\MagicAliases\Panel;
 use ScrapyardIO\Tubes\Core\MagicAliases\Window;
+use ScrapyardIO\Tubes\Core\Support\CanvasProfiles;
 use ScrapyardIO\Tubes\HumanInput\EngineInput;
 use ScrapyardIO\Tubes\HumanInput\Enums\MouseButton;
 use ScrapyardIO\Tubes\Inputs\InputHandler;
+use ScrapyardIO\Tubes\Panels\PanelException;
 use ScrapyardIO\Tubes\Rendering\Renderer2D;
-use ScrapyardIO\Tubes\Rendering\SoftRenderer2D;
 use ScrapyardIO\Tubes\Windows\WindowException;
 use ScrapyardIO\Tubes\Windows\WindowHandler;
 use ScrapyardIO\UX\Core\Scene;
+use ScrapyardIO\UX\Runner\Sketches\Concerns\ResolvesCanvasWindowOptions;
 use ScrapyardIO\UX\Runner\Sketches\UXCanvasWindow\Assets\DemoStage;
-use ScrapyardIO\UX\Runner\Sketches\UXCanvasWindow\Assets\UxSceneFlow;
-use ScrapyardIO\UX\Support\Color;
+use ScrapyardIO\UX\Runner\Workflows\UxSceneFlow;
 use ScrapyardIO\UX\Support\Theme;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -26,13 +31,8 @@ use Symfony\Component\Console\Input\InputOption;
 /**
  * UX Scene showcase for the tubes canvas-window-demo slot.
  *
- * When scrapyard-io/ux is installed, UXServiceProvider replaces tubes'
- * CanvasWindowDemo binding so `./runner canvas-window-demo` runs this sketch.
- * Alias: `ux-canvas-window-demo`.
- *
- * Tubes owns Window / Renderer2D / present / poll. UX owns the scene tree:
- * DemoStage → DemoHud (StatusBar, Border, Panel, Flex, ProgressBar, Readout, Icon)
- * + Arena → Ball (integrate / bounce / click boost via Scene::process).
+ * Replaces tubes CanvasWindowDemo when UX is installed.
+ * No CLI driver / --profile → tubes.defaults.canvas (windows.* or panels.*).
  *
  *   ./runner canvas-window-demo
  *   ./runner canvas-window-demo sdl3 --fps=60
@@ -41,7 +41,9 @@ use Symfony\Component\Console\Input\InputOption;
 #[SketchAttribute('canvas-window-demo')]
 class UxCanvasWindowDemo extends Sketch
 {
-    protected string $description = 'UX Scene showcase — DemoHud + Arena/Ball physics (replaces tubes canvas-window-demo) — Ctrl-C or close window to stop';
+    use ResolvesCanvasWindowOptions;
+
+    protected string $description = 'UX Scene showcase — DemoHud + Arena/Ball — default tubes.defaults.canvas (panel or window); Ctrl-C to stop';
 
     /**
      * @var list<string>
@@ -66,6 +68,8 @@ class UxCanvasWindowDemo extends Sketch
 
     protected ?int $lastHudNs = null;
 
+    protected bool $hudPrimed = false;
+
     protected float $physicsLastT = 0.0;
 
     public function configureCommand(Command $command): void
@@ -73,15 +77,15 @@ class UxCanvasWindowDemo extends Sketch
         $command->addArgument(
             'driver',
             InputArgument::OPTIONAL,
-            'Optional window driver override (metal|open-gl|vulkan|cuda|sdl3). Default: profile driver.',
+            'Optional window driver override (metal|open-gl|vulkan|cuda|sdl3). Omitting driver+profile uses tubes.defaults.canvas.',
         );
 
+        // No default — a default here would block tubes.defaults.canvas forever.
         $command->addOption(
             'profile',
             null,
             InputOption::VALUE_REQUIRED,
-            'Window profile under tubes.canvas_profiles.windows',
-            'canvas-window-demo',
+            'Window profile under tubes.canvas_profiles.windows (forces window path when set)',
         );
 
         $command->addOption(
@@ -138,9 +142,91 @@ class UxCanvasWindowDemo extends Sketch
 
         $this->ran = true;
 
-        $profile = $this->resolveProfile();
-        if (is_null($profile)) {
+        if ($this->wantsDefaultCanvas()) {
+            return $this->runDefaultCanvas();
+        }
+
+        return $this->runWindowCanvas($this->resolveProfile());
+    }
+
+    protected function runDefaultCanvas(): SketchLoopResult
+    {
+        $slug = $this->resolveDefaultCanvasProfile();
+        if (is_null($slug)) {
             return SketchLoopResult::STOP;
+        }
+
+        try {
+            [$kind] = CanvasProfiles::locate($slug);
+        } catch (\InvalidArgumentException $exception) {
+            $this->error($exception->getMessage());
+
+            return SketchLoopResult::STOP;
+        }
+
+        return match ($kind) {
+            CanvasProfileKind::PANELS => $this->runPanelCanvas($slug),
+            CanvasProfileKind::WINDOWS => $this->runWindowCanvas($slug),
+        };
+    }
+
+    protected function runPanelCanvas(string $panelProfile): SketchLoopResult
+    {
+        $fps = $this->resolvePositiveInt('fps', 60);
+        if (is_null($fps)) {
+            return SketchLoopResult::STOP;
+        }
+
+        try {
+            $panel = Panel::profile($panelProfile);
+        } catch (PanelException $exception) {
+            $this->error($exception->getMessage());
+
+            return SketchLoopResult::STOP;
+        }
+
+        $this->renderer = $panel->renderer();
+        $width = $panel->width();
+        $height = $panel->height();
+        $this->measuredFps = (float) $fps;
+        $this->lastPaintNs = null;
+        $this->lastHudNs = null;
+        $this->hudPrimed = false;
+        $this->physicsLastT = 0.0;
+
+        $this->info(
+            "Opening UX Scene panel [{$panelProfile}] {$width}x{$height} @{$fps}fps via ".$this->renderer::class
+        );
+
+        $shared = [
+            'canvas' => $panel,
+            'panel_profile' => $panelProfile,
+            'width' => $width,
+            'height' => $height,
+            'fps' => $fps,
+            'should_stop' => fn (): bool => $this->stopRequested,
+            'paint' => function (Canvas $canvas, int $tick) use (&$shared): void {
+                $this->frame($canvas, $tick, $shared);
+            },
+        ];
+
+        UxSceneFlow::makePanel()->run($shared);
+
+        $this->teardown();
+
+        if (isset($shared['error']) && is_string($shared['error'])) {
+            $this->error($shared['error']);
+        } else {
+            $this->info("UX Scene panel [{$panelProfile}] stopped after ".(int) ($shared['tick'] ?? 0).' ticks.');
+        }
+
+        return SketchLoopResult::STOP;
+    }
+
+    protected function runWindowCanvas(?string $profile): SketchLoopResult
+    {
+        if (is_null($profile) || $profile === '') {
+            $profile = 'canvas-window-demo';
         }
 
         try {
@@ -173,6 +259,7 @@ class UxCanvasWindowDemo extends Sketch
         $this->measuredFps = (float) $fps;
         $this->lastPaintNs = null;
         $this->lastHudNs = null;
+        $this->hudPrimed = false;
         $this->physicsLastT = 0.0;
         $this->info("Opening UX Scene demo [{$profile}] → [{$driver}] {$width}x{$height} @{$fps}fps — {$title}");
 
@@ -197,17 +284,13 @@ class UxCanvasWindowDemo extends Sketch
             $shared['height'] = $heightOverride;
         }
 
-        $shared['paint'] = function (OSWindow $window, int $tick) use (&$shared): void {
-            $this->frame($window, $tick, $shared);
+        $shared['paint'] = function (Canvas $canvas, int $tick) use (&$shared): void {
+            $this->frame($canvas, $tick, $shared);
         };
 
         UxSceneFlow::make()->run($shared);
 
-        $this->renderer?->unsetFramebuffer();
-        $this->renderer = null;
-        $this->scene = null;
-        $this->stage = null;
-        $this->engineInput = null;
+        $this->teardown();
 
         if (isset($shared['error']) && is_string($shared['error'])) {
             $this->error($shared['error']);
@@ -219,12 +302,21 @@ class UxCanvasWindowDemo extends Sketch
         return SketchLoopResult::STOP;
     }
 
+    protected function teardown(): void
+    {
+        $this->renderer?->unsetFramebuffer();
+        $this->renderer = null;
+        $this->scene = null;
+        $this->stage = null;
+        $this->engineInput = null;
+    }
+
     /**
      * One frame: pace stamp → input → Scene::process → HUD sync → Scene::paint.
      *
      * @param  array<string, mixed>  $shared
      */
-    protected function frame(OSWindow $window, int $tick, array &$shared): void
+    protected function frame(Canvas $canvas, int $tick, array &$shared): void
     {
         $renderer = $this->renderer;
         if (is_null($renderer)) {
@@ -236,7 +328,13 @@ class UxCanvasWindowDemo extends Sketch
         $dt = $this->resolveDeltaSeconds($nowNs, is_int($shared['fps'] ?? null) ? $shared['fps'] : 60);
         $shared['dt'] = $dt;
 
-        if (! is_null($this->lastPaintNs)) {
+        // Prefer last tick's paint+present wall time (set by PaintTickNode). Inter-paint
+        // cadence includes FramePace sleep and lied at ~30 while SPI looked like ~3.
+        $workNs = $shared['work_ns'] ?? null;
+        if (is_int($workNs) && $workNs > 0) {
+            $instant = 1_000_000_000.0 / $workNs;
+            $this->measuredFps = ($this->measuredFps * 0.9) + ($instant * 0.1);
+        } elseif (! is_null($this->lastPaintNs)) {
             $elapsed = $nowNs - $this->lastPaintNs;
             if ($elapsed > 0) {
                 $instant = 1_000_000_000.0 / $elapsed;
@@ -246,7 +344,7 @@ class UxCanvasWindowDemo extends Sketch
         $this->lastPaintNs = $nowNs;
 
         if (is_null($this->scene) || is_null($this->stage)) {
-            $this->buildScene($window);
+            $this->buildScene($canvas);
         }
 
         $stage = $this->stage;
@@ -255,43 +353,52 @@ class UxCanvasWindowDemo extends Sketch
             return;
         }
 
-        $this->wirePointer($window, $stage);
+        if ($canvas instanceof OSWindow) {
+            $this->wirePointer($canvas, $stage);
+        }
 
-        $scene->attach($window);
+        $scene->attach($canvas);
         $scene->process($dt);
 
-        // Strings / layout ~10Hz. ProgressBar value can update every frame cheaply.
-        // (Do not sync sprintf HUD every frame while boosting — that was a layout churn trap.)
+        // HUD ~10Hz only on dirty/partial PanelIC (SPI digit churn). OSWindow /
+        // whole-surface FBs clear every paint — hiding HUD there flickers text out.
+        $throttleHud = ! $canvas->framebuffer()->damageGranularity()->coversWholeSurface();
         $hudDue = is_null($this->lastHudNs) || ($nowNs - $this->lastHudNs) >= 100_000_000;
+        $paintHud = (! $throttleHud) || $hudDue || ! $this->hudPrimed;
 
-        if ($hudDue) {
+        if ($paintHud) {
             $this->lastHudNs = $nowNs;
+            $this->hudPrimed = true;
             if ($stage->sync($this->measuredFps, $tick)) {
                 $scene->markNeedsLayout();
             }
-        } else {
-            $stage->hud()->syncBoostBar($stage->ball());
+            $stage->hud()->setVisible(true);
+        } elseif ($throttleHud) {
+            // Dirty PanelIC: skip HUD subtree SPI — only Ball erase/redraw each frame.
+            $stage->hud()->setVisible(false);
         }
 
-        $fb = $window->framebuffer();
+        $fb = $canvas->framebuffer();
         $renderer->setFramebuffer($fb);
 
         try {
             $scene->paint($renderer);
         } finally {
-            $renderer->unsetFramebuffer();
+            if (! $canvas instanceof PanelIC) {
+                $renderer->unsetFramebuffer();
+            }
         }
     }
 
-    protected function buildScene(OSWindow $window): void
+    protected function buildScene(Canvas $canvas): void
     {
         Theme::flush();
 
         $this->stage = DemoStage::of(0.85, 24);
         $this->scene = (new Scene)
-            ->attach($window)
+            ->attach($canvas)
             ->setRoot($this->stage)
-            ->setClearColor(Color::fromHex('#141820'));
+            ->setClearColor(Theme::color('surface'));
     }
 
     protected function wirePointer(OSWindow $window, DemoStage $stage): void
@@ -351,128 +458,5 @@ class UxCanvasWindowDemo extends Sketch
         $this->physicsLastT = $nowNs;
 
         return max(1.0 / 240.0, min(0.05, $dt));
-    }
-
-    protected function resolveRenderer(string $driver): Renderer2D
-    {
-        /** @var array<string, class-string<Renderer2D>> $map */
-        $map = [
-            'metal' => 'Microscrap\\GFX\\Metal\\MetalRenderer2D',
-            'open-gl' => 'Microscrap\\GFX\\OGX\\OpenGLRenderer2D',
-            'vulkan' => 'Microscrap\\GFX\\Vulkan\\VulkanRenderer2D',
-            'cuda' => 'Microscrap\\GFX\\CUDA\\CudaGPURenderer2D',
-            'sdl3' => 'Microscrap\\GFX\\SDL3\\SDL3Renderer2D',
-        ];
-
-        $class = $map[$driver] ?? null;
-        if (! is_null($class) && class_exists($class)) {
-            return new $class;
-        }
-
-        return new SoftRenderer2D;
-    }
-
-    protected function resolveProfile(): ?string
-    {
-        $raw = $this->option('profile');
-        $profile = is_string($raw) ? trim($raw) : '';
-
-        if ($profile === '') {
-            $this->error('Option --profile must be a non-empty canvas window profile slug.');
-
-            return null;
-        }
-
-        return $profile;
-    }
-
-    protected function resolveDriverOverride(): ?string
-    {
-        $raw = $this->argument('driver');
-        if (! is_string($raw) || trim($raw) === '') {
-            return null;
-        }
-
-        $driver = strtolower(trim($raw));
-        if ($driver === 'opengl') {
-            $driver = 'open-gl';
-        }
-
-        return $this->assertDriverSupported($driver);
-    }
-
-    protected function assertDriverSupported(string $driver): ?string
-    {
-        if (! in_array($driver, $this->drivers, true)) {
-            $this->error('Unsupported driver ['.$driver.']. Use: '.implode('|', $this->drivers));
-
-            return null;
-        }
-
-        return $driver;
-    }
-
-    protected function resolveOptionalString(string $option): ?string
-    {
-        $raw = $this->option($option);
-
-        if (! is_string($raw) || $raw === '') {
-            return null;
-        }
-
-        return $raw;
-    }
-
-    /**
-     * @return int|null|false null = unset, false = invalid, int = override
-     */
-    protected function resolveOptionalPositiveInt(string $option): int|false|null
-    {
-        $raw = $this->option($option);
-
-        if (is_null($raw) || $raw === '') {
-            return null;
-        }
-
-        if (! is_numeric($raw)) {
-            $this->error("Option --{$option} must be a positive integer.");
-
-            return false;
-        }
-
-        $value = (int) $raw;
-
-        if ($value < 1) {
-            $this->error("Option --{$option} must be >= 1.");
-
-            return false;
-        }
-
-        return $value;
-    }
-
-    protected function resolvePositiveInt(string $option, int $default): ?int
-    {
-        $raw = $this->option($option);
-
-        if (is_null($raw) || $raw === '') {
-            return $default;
-        }
-
-        if (! is_numeric($raw)) {
-            $this->error("Option --{$option} must be a positive integer.");
-
-            return null;
-        }
-
-        $value = (int) $raw;
-
-        if ($value < 1) {
-            $this->error("Option --{$option} must be >= 1.");
-
-            return null;
-        }
-
-        return $value;
     }
 }

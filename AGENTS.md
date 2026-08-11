@@ -24,5 +24,7 @@ Before changing UX code or advising on ScrapyardIO scene / node / widget archite
 - **Layout (UI layer):** parent-relative rects + child injection on `UIComponent`. No Flutter Constraints on the Node base.
 - **World vs viewport:** virtual world coords + Scene camera/scroll; cull/clip on paint; never allocate a world-sized buffer.
 - Generators: `make:component` → `UIComponent` stub; `make:ux-node` → `Node` stub (disambiguates Flow’s `make:node`).
-- Demo sketch: `Runner/Sketches/UXCanvasWindow/UxCanvasWindowDemo` **replaces** tubes `canvas-window-demo` via `SketchRegistry::replace()` when UX is installed; alias `ux-canvas-window-demo`. Sketch assets in `UXCanvasWindow/Assets/` (`DemoStage`, `DemoHud`, `UxSceneFlow`). Catalog `Arena` / physics `Ball` via `Scene::process` — not tubes `MetalCanvasFlow` / `BallPhysicsNode`.
+- Shared bootstrap: `Runner/Workflows/UxSceneFlow` + `Runner/Sketches/Concerns/ResolvesCanvasWindowOptions`.
+- Demo sketch: `Runner/Sketches/UXCanvasWindow/UxCanvasWindowDemo` **replaces** tubes `canvas-window-demo` via `SketchRegistry::replace()` when UX is installed; alias `ux-canvas-window-demo`. **Never** default CLI `--profile` (that blocked panels). No-arg → `tubes.defaults.canvas` (`CanvasProfiles::locate` → panel or window). Sketch assets in `UXCanvasWindow/Assets/` (`DemoStage`, `DemoHud`). Catalog `Arena` / physics `Ball` via `Scene::process` — not tubes `MetalCanvasFlow` / `BallPhysicsNode`.
+- GUI tutorial sketch: `Runner/Sketches/UXGuiColorMenu/UxGuiColorMenu` (`ux-gui-color-menu`) — Menu/Button change `Scene` clear colour; assets in `UXGuiColorMenu/Assets/`.
 - `_src/` and 0.6 Fabricate UX are **donors only** — not the runtime tree.

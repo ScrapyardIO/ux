@@ -46,6 +46,20 @@ class Arena extends UIComponent
         return $arena;
     }
 
+    public function setOutline(Color $outline): static
+    {
+        $this->outline = $outline;
+
+        return $this;
+    }
+
+    public function setFloor(Color $floor): static
+    {
+        $this->floor = $floor;
+
+        return $this;
+    }
+
     public function restitution(): float
     {
         return $this->restitution;
