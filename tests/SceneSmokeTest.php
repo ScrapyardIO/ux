@@ -9,9 +9,11 @@ use ScrapyardIO\Tubes\Contracts\Framebuffers\FormatSpec;
 use ScrapyardIO\Tubes\Contracts\Framebuffers\Framebuffer as FramebufferContract;
 use ScrapyardIO\Tubes\Rendering\SoftRenderer2D;
 use ScrapyardIO\UX\Components\Ball;
+use ScrapyardIO\UX\Components\Chrome\Icon;
 use ScrapyardIO\UX\Components\Chrome\Panel;
 use ScrapyardIO\UX\Components\Chrome\StatusBar;
 use ScrapyardIO\UX\Components\Text\Label;
+use ScrapyardIO\UX\Enums\IconGlyph;
 use ScrapyardIO\UX\Core\Drawable;
 use ScrapyardIO\UX\Core\Node;
 use ScrapyardIO\UX\Core\PaintContext;
@@ -215,6 +217,47 @@ test('arena ball physics integrates and bounces on walls', function () {
 
     expect($ball->centerXF())->toBeLessThan(190.0)
         ->and($ball->vx())->toBeLessThan(0.0);
+});
+
+test('gui backdrop enum maps labels to colours', function () {
+    $labels = \ScrapyardIO\UX\Enums\GuiBackdrop::labels();
+
+    expect($labels)->toContain('Midnight')
+        ->and(\ScrapyardIO\UX\Enums\GuiBackdrop::fromLabel('Forest'))->toBe(\ScrapyardIO\UX\Enums\GuiBackdrop::FOREST)
+        ->and(\ScrapyardIO\UX\Enums\GuiBackdrop::EMBER->color()->pack())->not->toBe(0);
+});
+
+test('color menu stage applies backdrop callback', function () {
+    Theme::flush();
+
+    $chosen = null;
+    $stage = \ScrapyardIO\UX\Runner\Sketches\UXGuiColorMenu\Assets\ColorMenuStage::of(
+        function (\ScrapyardIO\UX\Enums\GuiBackdrop $backdrop) use (&$chosen): void {
+            $chosen = $backdrop;
+        },
+    );
+
+    $stage->setSize(320, 240);
+    $stage->layout(new \ScrapyardIO\UX\Geometry\Size(320, 240));
+    $stage->menu()->select(2)->choose();
+
+    expect($chosen)->toBe(\ScrapyardIO\UX\Enums\GuiBackdrop::cases()[2])
+        ->and($stage->selected())->toBe($chosen);
+});
+
+test('panel does not stretch multi-child icons to full face size', function () {
+    Theme::flush();
+
+    $icon = Icon::of(IconGlyph::DISC, 12, Theme::color('accent'));
+    $label = Label::of('title');
+    $panel = Panel::of(Theme::color('panel'));
+    $panel->setSize(400, 300);
+    $panel->addChild($icon);
+    $panel->addChild($label);
+    $panel->layout(new \ScrapyardIO\UX\Geometry\Size(400, 300));
+
+    expect($icon->size()->width)->toBe(12)
+        ->and($icon->size()->height)->toBe(12);
 });
 
 test('demo stage composes hud arena and ball', function () {

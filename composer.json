@@ -4,7 +4,7 @@
     "keywords": ["framework", "scrapyard-io", "ux", "ui", "scene"],
     "license": "MIT",
     "homepage": "https://scrapyard-io.projectsaturnstudios.com/ecosystem/scrapyard-io/ux/0.7.x",
-    "version": "0.7.0",
+    "version": "0.7.1",
     "support": {
         "issues": "https://github.com/scrapyard-io/ux/issues",
         "source": "https://github.com/scrapyard-io/ux"
