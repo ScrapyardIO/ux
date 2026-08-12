@@ -17,8 +17,9 @@ Before changing UX code or advising on ScrapyardIO scene / node / widget archite
 
 - Composer: `scrapyard-io/ux` **0.7.0**. PHP `^8.4|^8.5|^8.6`. Namespace `ScrapyardIO\UX\` → `src/`.
 - Discovery: `extra.scrapyard-io.providers` → `ScrapyardIO\UX\UXServiceProvider`.
-- **Composer require rule (hard):** never put kitchen-sink umbrellas (`scrapyard-io/framework`, `scrapyard-io/tubes`, `scrapyard-io/gpio-framework`, …) in `require`. List only the split packages this package actually imports (`tubes/*`, `fabricate/*`, `gpio/*`, …). Umbrellas may appear in `suggest` when demos need umbrella-only surfaces (e.g. `Tubes\Core`). Pattern: `scrapyard-io/waveforms`.
-- Requires (granular): `tubes/canvas|contracts|rendering|human-input|inputs|panels|windows` + `fabricate/console|contracts|nuts-and-bolts|sketches` — **not** `scrapyard-io/tubes` / `scrapyard-io/framework`, and **not** `fabricate/ux ^0.6`.
+- **Composer require rule (hard):** never put kitchen-sink umbrellas in `require` or as a `suggest` workaround. List only split packages (`tubes/*`, `fabricate/*`, …). Pattern: `scrapyard-io/waveforms`.
+- **Core vs component (hard):** UX must not import `ScrapyardIO\Tubes\Core\*` (or Fabricate/GPIO Core). Use non-core tubes packages only; move APIs out of Core if demos need them.
+- Requires (granular): `tubes/canvas|contracts|rendering|human-input|inputs|panels|windows` + `fabricate/console|contracts|nuts-and-bolts|sketches` — **not** umbrellas, and **not** `fabricate/ux ^0.6`.
 - **Ownership:** Canvas (tubes) owns the framebuffer; `Renderer2D` borrows it; UX nodes never own pixel buffers on the default path.
 - **Layered tree (engine-ready):** `Node` (lifecycle) → `Drawable` (paint) → `UIComponent` (rect/layout/hit). A future game-engine package may depend on / extend `Node` / `Drawable` / `Scene` without UI-only baggage.
 - **Present:** only `Scene` binds a tubes `Canvas`. Do not put Window/Canvas types on `Node`.

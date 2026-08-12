@@ -29,9 +29,6 @@
         "tubes/rendering": "^0.7.0",
         "tubes/windows": "^0.7.0"
     },
-    "suggest": {
-        "scrapyard-io/tubes": "Kitchen-sink metapackage that replaces tubes/* and ships Tubes\\Core (MagicAliases, CanvasProfiles, WindowLoop nodes) used by UX demo sketches (^0.7)"
-    },
     "require-dev": {
         "pestphp/pest": "^4"
     },

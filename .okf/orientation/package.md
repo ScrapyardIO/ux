@@ -27,7 +27,6 @@ Composer package `scrapyard-io/ux` at **0.7.0** — ScrapyardIO **node-based UX*
 | Namespace | `ScrapyardIO\UX\` → `src/` |
 | Discovery | `extra.scrapyard-io.providers` → `UXServiceProvider` |
 | Requires | Granular `tubes/*` + `fabricate/*` only (see below) — **not** kitchen-sink umbrellas |
-| Suggest | `scrapyard-io/tubes` for `Tubes\Core` (demo MagicAliases / CanvasProfiles / WindowLoop) |
 
 # Composer requires (granular)
 
@@ -47,12 +46,12 @@ Mirror `scrapyard-io/waveforms`: declare the split packages this tree imports, n
 | `fabricate/sketches` | `Sketch` / `Flow` |
 | `fabricate/console` | `GeneratorCommand` |
 
-`Tubes\Core` is **not** a split package (umbrella-only). Demo sketches that import MagicAliases / CanvasProfiles / WindowLoop nodes need the app to also install `scrapyard-io/tubes` (listed under `suggest`).
+UX must not import `ScrapyardIO\Tubes\Core\*` — Magicalias / CanvasProfiles / WindowLoop need non-core seams (see [dependency direction](../conventions/dependency-direction.md)). Current demo sketch imports of Tubes Core are debt to remove.
 
 # What it is not
 
 - Not `fabricate/ux ^0.6`.
-- Not a consumer of `scrapyard-io/framework` / `scrapyard-io/tubes` in `require`.
+- Not a consumer of kitchen-sink umbrellas.
 - Not part of slim framework core.
 - Not the owner of framebuffers / Canvas / Window (tubes owns those).
 - `_src/` is donor-only; runtime code lives under `src/`.
