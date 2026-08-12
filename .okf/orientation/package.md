@@ -26,11 +26,33 @@ Composer package `scrapyard-io/ux` at **0.7.0** — ScrapyardIO **node-based UX*
 | PHP | `^8.4\|^8.5\|^8.6` |
 | Namespace | `ScrapyardIO\UX\` → `src/` |
 | Discovery | `extra.scrapyard-io.providers` → `UXServiceProvider` |
-| Requires | `scrapyard-io/tubes ^0.7`, `scrapyard-io/framework ^0.7` |
+| Requires | Granular `tubes/*` + `fabricate/*` only (see below) — **not** kitchen-sink umbrellas |
+| Suggest | `scrapyard-io/tubes` for `Tubes\Core` (demo MagicAliases / CanvasProfiles / WindowLoop) |
+
+# Composer requires (granular)
+
+Mirror `scrapyard-io/waveforms`: declare the split packages this tree imports, never the umbrellas.
+
+| Package | Why |
+|---------|-----|
+| `tubes/canvas` | `Canvas` / `OSWindow` / `PanelIC` |
+| `tubes/contracts` | Framebuffer contracts + format enums |
+| `tubes/rendering` | `Renderer2D` / `SoftRenderer2D` |
+| `tubes/human-input` | `EngineInput` (demo sketches) |
+| `tubes/inputs` | `InputHandler` (demo sketches) |
+| `tubes/windows` | `WindowHandler` / `WindowException` |
+| `tubes/panels` | `PanelException` (demo sketches) |
+| `fabricate/contracts` | `SketchRegistry` / sketch attributes |
+| `fabricate/nuts-and-bolts` | `AggregateServiceProvider` |
+| `fabricate/sketches` | `Sketch` / `Flow` |
+| `fabricate/console` | `GeneratorCommand` |
+
+`Tubes\Core` is **not** a split package (umbrella-only). Demo sketches that import MagicAliases / CanvasProfiles / WindowLoop nodes need the app to also install `scrapyard-io/tubes` (listed under `suggest`).
 
 # What it is not
 
 - Not `fabricate/ux ^0.6`.
+- Not a consumer of `scrapyard-io/framework` / `scrapyard-io/tubes` in `require`.
 - Not part of slim framework core.
 - Not the owner of framebuffers / Canvas / Window (tubes owns those).
 - `_src/` is donor-only; runtime code lives under `src/`.

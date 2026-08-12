@@ -2,6 +2,7 @@
 
 ## 2026-08-11
 
+- **Convention**: `composer.json` `require` switched from kitchen-sink `scrapyard-io/tubes` + `scrapyard-io/framework` to granular `tubes/*` + `fabricate/*` (waveforms pattern). `scrapyard-io/tubes` moved to `suggest` for umbrella-only `Tubes\Core`. Amended [package](orientation/package.md), [dependency-direction](conventions/dependency-direction.md), root `AGENTS.md`.
 - **Fix**: UxCanvasWindowDemo HUD ~10Hz visibility throttle applies **only** when framebuffer damage is not whole-surface (PanelIC dirty/pixel). On OSWindow / whole-surface clears, hiding HUD every other frame flickered text out. Amended [ux-canvas-window-demo](core/ux-canvas-window-demo.md), [scene-pipeline](core/scene-pipeline.md).
 
 ## 2026-08-10

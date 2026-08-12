@@ -17,4 +17,5 @@ sources:
 
 - Own `UXServiceProvider` via `extra.scrapyard-io.providers`.
 - Namespace `ScrapyardIO\UX\*`, not `Fabricate\*`.
-- Depends on tubes for Canvas / Renderer2D; does not reverse that ownership.
+- Depends on **split** tubes packages for Canvas / Renderer2D (`tubes/canvas`, `tubes/rendering`, …); does not reverse that ownership.
+- Never kitchen-sink-require `scrapyard-io/tubes` / `scrapyard-io/framework` — see [dependency direction](dependency-direction.md).

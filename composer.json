@@ -4,7 +4,7 @@
     "keywords": ["framework", "scrapyard-io", "ux", "ui", "scene"],
     "license": "MIT",
     "homepage": "https://scrapyard-io.projectsaturnstudios.com/ecosystem/scrapyard-io/ux/0.7.x",
-    "version": "0.7.1",
+    "version": "0.7.2",
     "support": {
         "issues": "https://github.com/scrapyard-io/ux/issues",
         "source": "https://github.com/scrapyard-io/ux"
@@ -17,8 +17,20 @@
     ],
     "require": {
         "php": "^8.4|^8.5|^8.6",
-        "scrapyard-io/framework": "^0.7.0",
-        "scrapyard-io/tubes": "^0.7.0"
+        "fabricate/console": "^0.7.0",
+        "fabricate/contracts": "^0.7.0",
+        "fabricate/nuts-and-bolts": "^0.7.0",
+        "fabricate/sketches": "^0.7.0",
+        "tubes/canvas": "^0.7.0",
+        "tubes/contracts": "^0.7.0",
+        "tubes/human-input": "^0.7.0",
+        "tubes/inputs": "^0.7.0",
+        "tubes/panels": "^0.7.0",
+        "tubes/rendering": "^0.7.0",
+        "tubes/windows": "^0.7.0"
+    },
+    "suggest": {
+        "scrapyard-io/tubes": "Kitchen-sink metapackage that replaces tubes/* and ships Tubes\\Core (MagicAliases, CanvasProfiles, WindowLoop nodes) used by UX demo sketches (^0.7)"
     },
     "require-dev": {
         "pestphp/pest": "^4"
